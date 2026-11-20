@@ -34,7 +34,7 @@ jobs:
           # リポジトリ内のすべての .mp4 ファイルを検索してリスト化
           find . -type f -name "*.mp4" | sort | while read -r file; do
             clean_path="${file#./}"
-            url="https://jsdelivr.net{REPO}@${BRANCH}/${clean_path}"
+            url="https://cdn.jsdelivr.net/gh/${REPO}@${BRANCH}/${clean_path}"
             
             # ファイルサイズを人間が読みやすい形式（MB / KBなど）で取得
             size=$(numfmt --to=iec-i --suffix=B --format="%.1f" $(stat -c%s "$file"))
