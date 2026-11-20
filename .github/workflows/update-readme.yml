@@ -1,0 +1,57 @@
+name: Update README with jsDelivr URLs
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - '**.mp4'
+      - '.github/workflows/update-readme.yml'
+  workflow_dispatch:  # Actionsタブから手動実行するための設定
+
+permissions:
+  contents: write
+
+jobs:
+  update-readme:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # 各ファイルの正確なGit更新日時を取得するために全履歴を取得
+
+      - name: Generate README.md
+        run: |
+          REPO="${{ github.repository }}"
+          BRANCH="${{ github.ref_name }}"
+          
+          echo "# Test Video Assets" > README.md
+          echo "" >> README.md
+          echo "jsDelivr 直リンク一覧（自動更新）：" >> README.md
+          echo "" >> README.md
+          
+          # リポジトリ内のすべての .mp4 ファイルを検索してリスト化
+          find . -type f -name "*.mp4" | sort | while read -r file; do
+            clean_path="${file#./}"
+            url="https://jsdelivr.net{REPO}@${BRANCH}/${clean_path}"
+            
+            # ファイルサイズを人間が読みやすい形式（MB / KBなど）で取得
+            size=$(numfmt --to=iec-i --suffix=B --format="%.1f" $(stat -c%s "$file"))
+            
+            # Gitのコミット履歴から最終更新日（日本時間 JST）を取得
+            updated_at=$(TZ=Asia/Tokyo git log -1 --format="%ad" --date=format-local:"%Y-%m-%d %H:%M" -- "$clean_path")
+            
+            echo "- **${clean_path}** （サイズ: \`${size}\` / 更新日: \`${updated_at} JST\`）" >> README.md
+            echo "  \`\`\`text" >> README.md
+            echo "  ${url}" >> README.md
+            echo "  \`\`\`" >> README.md
+          done
+
+      - name: Commit and push if changed
+        run: |
+          git config --local user.email "github-actions[bot]@://github.com"
+          git config --local user.name "github-actions[bot]"
+          git add README.md
+          git diff --staged --quiet || git commit -m "docs: update jsDelivr URL list in README"
+          git push
